@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StatLab: play with probability and statistics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFFFFF; --grid:#EEF2F8; --surface:#FFFFFF; --ink:#14213D; --muted:#55647E; --line:#D3DDEA;
+  --blue:#2346D6; --blue-mid:#8EA2F2; --blue-soft:#E3E9FD; --hi:#FFD84D; --amber:#D99100; --hi-soft:#FFF5C9;
+  --ok:#17875D; --ok-soft:#DBF3E8; --bad:#D23A52; --bad-soft:#FCE2E6; --violet:#7449D4;
+  --display:'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --body:'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+/* Light theme only: always white, even when the viewer or device is in dark mode */
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none !important}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 76px);height:100%}
+body{
+  margin:0;min-height:100%;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.1;margin:0;letter-spacing:-0.01em}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:6px}
+img,canvas{max-width:100%}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px clamp(14px,3vw,32px)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-family:var(--display);font-weight:800;font-size:1.35rem}
+.brand svg{width:34px;height:22px}
+.meter{display:flex;align-items:center;gap:12px;position:relative}
+.lvl{width:42px;height:42px;border-radius:50%;background:var(--hi);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.15rem;color:#14213D;border:2px solid var(--ink)}
+.meter-text{min-width:150px}
+.meter-text strong{font-family:var(--display);font-size:.98rem;display:block;line-height:1.1}
+.bar{height:9px;border-radius:9px;background:var(--blue-soft);overflow:hidden;margin:4px 0 2px;border:1px solid var(--line)}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--violet));border-radius:9px}
+.meter-text small{color:var(--muted);font-size:.78rem}
+.badge-btn{border:2px solid var(--ink);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.badge-btn:hover{background:var(--hi-soft)}
+.xp-float{position:absolute;left:46px;top:-4px;font-family:var(--display);font-weight:800;color:var(--violet);pointer-events:none;animation:floatUp 1.3s ease-out forwards}
+@keyframes floatUp{0%{opacity:0;transform:translateY(10px)}15%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
+
+main{max-width:1180px;margin:0 auto;padding:0 clamp(14px,3vw,32px) 40px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(18px,4vw,48px);align-items:center;padding:clamp(26px,5vw,56px) 0 28px}
+.hero h1{font-size:clamp(2rem,4.6vw,3.5rem);font-weight:800;letter-spacing:-0.03em;line-height:1.02;max-width:14ch}
+.hero p{max-width:52ch;color:var(--muted);font-size:1.06rem;margin:16px 0 20px}
+.hero-board{background:var(--surface);border:2px solid var(--ink);border-radius:18px;padding:10px;box-shadow:8px 8px 0 var(--blue-soft)}
+#galton{display:block;width:100%;height:380px}
+.galton-meta{display:flex;justify-content:space-between;gap:10px;font-size:.85rem;color:var(--muted);padding:4px 6px 0;flex-wrap:wrap}
+.key{display:inline-flex;align-items:center;gap:6px}
+.key i{display:inline-block;width:16px;height:4px;border-radius:2px}
+
+/* buttons */
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:2px solid var(--ink);background:var(--surface);border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;transition:transform .08s ease, box-shadow .08s ease;box-shadow:3px 3px 0 var(--ink)}
+.btn:hover{background:var(--hi-soft)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn.primary{background:var(--blue);border-color:var(--ink);color:#fff}
+.btn.primary:hover{filter:brightness(1.08);background:var(--blue)}
+.btn.quiet{box-shadow:none;border-color:var(--line);font-weight:400}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.good{background:var(--ok);color:#fff}
+.btn.danger{background:var(--bad);color:#fff}
+
+/* lesson path */
+.path{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:8px 0 28px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 63px);z-index:15;padding:8px 0;background:var(--paper)}
+.tab{display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 14px;min-width:0}
+.tab .n{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-weight:800}
+.tab .t{min-width:0}
+.tab .t b{display:block;font-family:var(--display);font-size:.98rem;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .t small{color:var(--muted)}
+.tab[aria-current="page"]{border-color:var(--ink);box-shadow:4px 4px 0 var(--blue)}
+.tab[aria-current="page"] .n{background:var(--blue);color:#fff}
+.tab.complete .n{background:var(--ok);color:#fff}
+
+/* lesson head */
+.lesson-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:28px;margin-bottom:26px;align-items:start}
+.lesson-head h2{font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-0.02em;max-width:22ch}
+.lesson-head p{color:var(--muted);max-width:60ch}
+.lesson-of{font-weight:700;color:var(--blue);margin:0 0 6px}
+.missions{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:14px 16px}
+.missions h4{font-size:1.05rem;margin-bottom:8px}
+.missions ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.missions li{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:start;font-size:.9rem;line-height:1.35}
+.missions li em{font-style:normal;color:var(--violet);font-weight:700;white-space:nowrap;font-size:.82rem}
+.tick{width:18px;height:18px;border:2px solid var(--muted);border-radius:5px;margin-top:1px}
+.missions li.done span:nth-child(2){color:var(--muted);text-decoration:line-through;text-decoration-color:var(--ok)}
+.missions li.done .tick{background:var(--ok);border-color:var(--ok);position:relative}
+.missions li.done .tick::after{content:"";position:absolute;left:4px;top:0;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+/* lab */
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:26px;overflow:hidden}
+.lab-head{display:flex;align-items:baseline;gap:12px;padding:16px 20px;border-bottom:1px dashed var(--line)}
+.lab-no{font-family:var(--display);font-weight:800;color:var(--blue);font-size:1.05rem}
+.lab-head h3{font-size:1.3rem;font-weight:700}
+.lab-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:22px;padding:18px 20px}
+.lab-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.story{margin:0;max-width:60ch}
+.simple{margin:16px 20px 0;padding:12px 16px;background:var(--blue-soft);border-left:5px solid var(--blue);border-radius:10px}
+.simple h4{font-size:1rem;margin-bottom:3px;color:var(--blue)}
+.simple p{margin:0;max-width:75ch;font-size:1.02rem}
+.chart-box{position:relative;height:320px;min-width:0}
+.chart-box.tall{height:360px}
+.chart-box.small{height:170px}
+.chart-cap{font-size:.84rem;color:var(--muted);margin:6px 0 0}
+.ctl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.ctl span{font-weight:700;font-size:.92rem}
+.ctl output{font-family:var(--display);font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums}
+.ctl input[type=range]{grid-column:1 / -1;width:100%;accent-color:var(--blue);height:26px}
+.seg{display:inline-flex;border:2px solid var(--ink);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--surface);padding:7px 12px;cursor:pointer;font-weight:700;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.stat{background:#F7F9FC;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat b{display:block;font-family:var(--display);font-size:1.3rem;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat small{color:var(--muted);font-size:.8rem}
+.stat.big b{font-size:1.9rem;color:var(--blue)}
+.formula{background:var(--hi-soft);border-left:4px solid var(--amber);border-radius:6px;padding:9px 12px;font-size:.95rem;overflow-x:auto;white-space:nowrap}
+.formula b{font-variant-numeric:tabular-nums}
+.formula .lbl{display:block;font-size:.8rem;color:var(--muted);white-space:normal}
+.takeaway{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px dashed var(--line)}
+.takeaway div{padding:14px 20px;font-size:.94rem}
+.takeaway div+div{border-left:1px dashed var(--line)}
+.takeaway h4{font-size:.98rem;margin-bottom:4px}
+.verdict{border-radius:10px;padding:10px 12px;font-weight:700;border:2px solid currentColor}
+.verdict.rej{color:var(--bad);background:var(--bad-soft)}
+.verdict.keep{color:var(--ok);background:var(--ok-soft)}
+.verdict.info{color:var(--blue);background:var(--blue-soft)}
+.verdict span{display:block;font-weight:400;color:var(--ink);font-size:.9rem}
+
+/* coin */
+.coin-row{display:flex;align-items:center;gap:16px}
+.coin{width:74px;height:74px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.9rem;
+  background:radial-gradient(circle at 35% 30%,#FFF1A8,var(--hi) 60%,#E3B21C);border:3px solid var(--ink);color:#14213D}
+.coin.die{border-radius:14px;background:var(--surface);color:var(--ink);font-size:2.6rem}
+.coin.spin{animation:spin .45s ease-out}
+@keyframes spin{0%{transform:rotateY(0) scale(1)}50%{transform:rotateY(540deg) scale(1.15)}100%{transform:rotateY(1080deg) scale(1)}}
+
+.sample-line{font-size:.88rem;color:var(--muted);min-height:1.4em;overflow-wrap:anywhere}
+.hist-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border-radius:999px;padding:3px 10px;font-size:.82rem;font-weight:700;border:1px solid var(--line);background:var(--paper)}
+.chip.hit{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.chip.miss{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+canvas.clickable{cursor:crosshair}
+
+/* quiz */
+.quiz{background:var(--surface);border:2px solid var(--ink);border-radius:16px;padding:20px;margin-bottom:26px}
+.quiz h3{font-size:1.4rem;margin-bottom:4px}
+.quiz > p{color:var(--muted);margin:0 0 14px}
+.q{border-top:1px dashed var(--line);padding:14px 0}
+.q p{margin:0 0 10px;font-weight:700}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:2px solid var(--line);background:#F7F9FC;border-radius:10px;padding:9px 12px;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--blue)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt:disabled{cursor:default}
+.explain{margin-top:8px;font-size:.92rem;color:var(--muted)}
+
+/* overlays */
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(20,33,61,.55);display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.panel{background:var(--surface);border:2px solid var(--ink);border-radius:18px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:22px;box-shadow:8px 8px 0 var(--blue)}
+.panel h3{font-size:1.5rem;margin-bottom:4px}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px}
+.bcard{border:2px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.bcard .ic{font-size:2rem;display:block}
+.bcard b{display:block;font-family:var(--display);font-size:.95rem;margin-top:4px}
+.bcard small{color:var(--muted);font-size:.78rem;line-height:1.3;display:block;margin-top:2px}
+.bcard.locked .ic{filter:grayscale(1);opacity:.35}
+.bcard.locked b{color:var(--muted)}
+.bcard.got{border-color:var(--ink);background:var(--hi-soft)}
+.unlock{text-align:center;max-width:400px}
+.medal{width:132px;height:132px;margin:6px auto 12px;border-radius:50%;display:grid;place-items:center;font-size:4rem;background:radial-gradient(circle at 35% 30%,#FFF1A8,var(--hi) 60%,#E3B21C);border:3px solid var(--ink);box-shadow:0 0 0 8px var(--hi-soft)}
+.unlock p{color:var(--muted)}
+
+#toasts{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;display:grid;gap:8px;max-width:min(360px,calc(100vw - 32px))}
+.toast{background:var(--surface);border:2px solid var(--ink);border-radius:12px;padding:10px 14px;box-shadow:4px 4px 0 var(--violet);font-size:.92rem;animation:toastIn .35s cubic-bezier(.2,1.4,.4,1)}
+.toast.level{box-shadow:4px 4px 0 var(--amber);background:var(--hi-soft)}
+@keyframes toastIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+footer{max-width:1180px;margin:0 auto;padding:10px clamp(14px,3vw,32px) 40px;color:var(--muted);font-size:.88rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.link{background:none;border:0;color:var(--blue);text-decoration:underline;cursor:pointer;padding:0}
+.notice{background:var(--bad-soft);border:2px solid var(--bad);padding:12px;border-radius:10px;margin:16px 0;display:none}
+
+@media (max-width:900px){
+  .hero,.lab-grid,.lesson-head{grid-template-columns:1fr}
+  .path{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tab{padding:8px;gap:8px}
+  .tab .t small{display:none}
+  .meter-text{min-width:0}
+}
+@media (max-width:560px){
+  .meter-text small{display:none}
+  .tab .t b{font-size:.8rem;white-space:normal}
+  .tab .n{width:28px;height:28px;font-size:.9rem}
+  #galton{height:300px}
+  .chart-box{height:270px}
+  .brand span{display:none}
+  .takeaway div+div{border-left:0;border-top:1px dashed var(--line)}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#probability" aria-label="StatLab home">
+    <svg viewBox="0 0 34 22" aria-hidden="true"><path d="M1 21 C9 21 10 2 17 2 S25 21 33 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="17" cy="2.5" r="2.5" fill="#FFD84D" stroke="currentColor"/></svg>
+    <span>StatLab</span>
+  </a>
+  <div class="meter" id="meter">
+    <div class="lvl" aria-label="Level"><span id="lvlNum">1</span></div>
+    <div class="meter-text">
+      <strong id="lvlTitle">Curious mind</strong>
+      <div class="bar" role="progressbar" aria-label="Progress to next level" aria-valuemin="0" aria-valuemax="100" id="xpBar"><span id="xpFill"></span></div>
+      <small id="xpText">0 of 100 XP to level 2</small>
+    </div>
+    <button class="badge-btn" id="openBadges" type="button">🏅 <span id="badgeCount">0</span>/15</button>
+  </div>
+</header>
+
+<main>
+  <div class="notice" id="libNotice">The chart library didn’t load. Check your connection and reload the page to use the labs.</div>
+
+  <section class="hero">
+    <div>
+      <h1>Chance looks messy until you drop a thousand balls.</h1>
+      <p>Each ball bounces left or right at random, twelve times. No single path can be predicted, yet the pile always grows into the same bell shape. That gap between one random event and a reliable pattern is what probability and statistics are about.</p>
+      <div class="btnrow">
+        <button class="btn" id="g1" type="button">Drop 1 ball</button>
+        <button class="btn primary" id="g50" type="button">Drop 50 balls</button>
+        <button class="btn quiet" id="g0" type="button">Clear board</button>
+      </div>
+    </div>
+    <div class="hero-board">
+      <canvas id="galton" aria-label="Galton board: balls fall through pegs and pile into a bell-shaped histogram"></canvas>
+      <div class="galton-meta">
+        <span><b id="gCount">0</b> balls on the board</span>
+        <span class="key"><i style="background:var(--blue)"></i>your pile <i style="background:var(--amber);margin-left:8px"></i>binomial prediction</span>
+      </div>
+    </div>
+  </section>
+
+  <nav class="path" aria-label="Lessons">
+    <a class="tab" href="#probability" data-view="probability"><span class="n">1</span><span class="t"><b>Probability and distributions</b><small id="tabc-1">0 of 8 missions</small></span></a>
+    <a class="tab" href="#sampling" data-view="sampling"><span class="n">2</span><span class="t"><b>Sampling, CLT and intervals</b><small id="tabc-2">0 of 5 missions</small></span></a>
+    <a class="tab" href="#testing" data-view="testing"><span class="n">3</span><span class="t"><b>Hypothesis tests and regression</b><small id="tabc-3">0 of 6 missions</small></span></a>
+  </nav>
+
+  <!-- ================= LESSON 1 ================= -->
+  <section class="view" id="view-probability" hidden>
+    <div class="lesson-head">
+      <div>
+        <p class="lesson-of">Lesson 1 of 3</p>
+        <h2>Probability fundamentals and key distributions</h2>
+        <p>A probability is the long-run share of times something happens. A distribution lists every possible outcome with its probability. You will meet the three you will use most: binomial for counting successes, Poisson for counting random arrivals, and normal for measurements.</p>
+      </div>
+      <aside class="missions"><h4>Missions</h4><ul id="missions-1"></ul></aside>
+    </div>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">1.1</span><h3>Coins, dice and the law of large numbers</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>If you repeat something random many times, the results average out to the true chance. One coin flip tells you nothing, but a thousand flips show you the coin lands heads about half the time.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">One flip is unpredictable. The share of heads over many flips is not. Flip a handful and the proportion jumps around; flip hundreds and it settles on the true probability.</p>
+          <div class="seg" id="coinMode"><button type="button" data-v="coin" aria-pressed="true">Coin (heads)</button><button type="button" data-v="die" aria-pressed="false">Die (rolling a 6)</button></div>
+          <div class="coin-row">
+            <div class="coin" id="coinFace" aria-live="polite">?</div>
+            <div class="btnrow">
+              <button class="btn" type="button" data-flip="1">×1</button>
+              <button class="btn" type="button" data-flip="10">×10</button>
+              <button class="btn" type="button" data-flip="100">×100</button>
+              <button class="btn primary" type="button" id="coinAuto">Auto-run</button>
+              <button class="btn quiet" type="button" id="coinReset">Reset</button>
+            </div>
+          </div>
+          <div class="readout">
+            <div class="stat"><b id="coinN">0</b><small>trials</small></div>
+            <div class="stat"><b id="coinHits">0</b><small id="coinHitsLbl">heads</small></div>
+            <div class="stat"><b id="coinGap">–</b><small>distance from truth</small></div>
+          </div>
+          <div class="formula" id="coinFormula"></div>
+        </div>
+        <div>
+          <div class="chart-box"><canvas id="coinChart"></canvas></div>
+          <p class="chart-cap">Blue: your running proportion. Dashed amber: the true probability.</p>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>Insurers can’t predict whether you will crash this year, but across a million drivers the crash rate is stable enough to price a policy. Casinos, airlines overbooking seats, and cricket analysts all rely on this law.</div>
+        <div><h4>What to notice</h4>Early on, the gap from the truth is large. It shrinks roughly like 1/√n, so going from 100 to 400 flips only halves the typical error.</div>
+      </div>
+    </article>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">1.2</span><h3>Binomial: how many customers will buy?</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>The binomial distribution counts how many successes you get from a fixed number of tries, when every try has the same chance. Example: out of 20 customers, each with a 30% chance of buying, how many will actually buy?</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">A phone shop gets <b>n</b> walk-in customers a day. Each one buys with probability <b>p</b>, independently of the others. The binomial distribution tells the owner how likely each number of sales is.</p>
+          <label class="ctl"><span>Customers (n)</span><output id="bnOut">20</output><input type="range" id="bn" min="1" max="40" step="1" value="20"></label>
+          <label class="ctl"><span>Chance each buys (p)</span><output id="bpOut">0.30</output><input type="range" id="bp" min="0.01" max="0.99" step="0.01" value="0.3"></label>
+          <label class="ctl"><span>Sales target (k)</span><output id="bkOut">6</output><input type="range" id="bk" min="0" max="20" step="1" value="6"></label>
+          <div class="readout">
+            <div class="stat big"><b id="bPk">–</b><small>exactly k sales</small></div>
+            <div class="stat big"><b id="bPge">–</b><small>k or more sales</small></div>
+            <div class="stat"><b id="bMean">–</b><small>expected sales (np)</small></div>
+          </div>
+          <div class="formula" id="binomFormula"></div>
+        </div>
+        <div>
+          <div class="chart-box"><canvas id="binomChart"></canvas></div>
+          <p class="chart-cap">Dark bar: exactly k. Mid-blue bars: more than k. Hover a bar for its probability.</p>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>Defective items in a batch, patients who respond to a drug, correct answers when guessing an MCQ test, or how many of 300 booked passengers actually turn up.</div>
+        <div><h4>What to notice</h4>At p = 0.5 the shape is perfectly symmetric. Push p towards 0 or 1 and it leans. Increase n and it starts to look like a bell, exactly like the board at the top.</div>
+      </div>
+    </article>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">1.3</span><h3>Poisson: will the help desk be swamped?</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>The Poisson distribution counts how many random events happen in a fixed time when you only know the average. Example: if 3 calls arrive per minute on average, how often will a minute bring 8 calls?</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">A university help desk receives <b>λ</b> calls per minute on average, arriving at random. Staff can handle <b>k</b> calls in a minute. How often will a minute overload them?</p>
+          <label class="ctl"><span>Average calls per minute (λ)</span><output id="plOut">3.0</output><input type="range" id="pl" min="0.5" max="12" step="0.5" value="3"></label>
+          <label class="ctl"><span>Calls staff can handle (k)</span><output id="pkOut">5</output><input type="range" id="pk" min="0" max="20" step="1" value="5"></label>
+          <div class="readout">
+            <div class="stat big"><b id="pOver">–</b><small>minutes with more than k calls</small></div>
+            <div class="stat"><b id="pOverShift">–</b><small>overloaded minutes per hour</small></div>
+          </div>
+          <div class="btnrow"><button class="btn primary" type="button" id="pSim">Simulate a 60-minute shift</button></div>
+          <p class="sample-line" id="pSimText">Run a shift to compare real random minutes with the formula.</p>
+          <div class="formula" id="poisFormula"></div>
+        </div>
+        <div>
+          <div class="chart-box"><canvas id="poisChart"></canvas></div>
+          <p class="chart-cap">Bars: Poisson probabilities. Red bars: overloaded minutes. Dots: your simulated shift.</p>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>Calls to a call centre, visitors to a website each second, accidents at a junction per month, typos per page, or goals in a football match.</div>
+        <div><h4>What to notice</h4>The mean and the variance are both λ. Small λ gives a lopsided shape with lots of zeros; large λ looks more and more like a bell.</div>
+      </div>
+    </article>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">1.4</span><h3>Normal: the area under the bell is probability</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>Many measurements, like height, cluster around an average and become rarer the further you go from it, making a bell shape. The area under the bell between two values is the chance of landing between them.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">Adult heights follow a bell curve with mean <b>μ</b> and spread <b>σ</b>. Pick a range of heights; the shaded area is the share of people inside it.</p>
+          <label class="ctl"><span>Mean height (μ, cm)</span><output id="nmOut">170</output><input type="range" id="nm" min="150" max="190" step="1" value="170"></label>
+          <label class="ctl"><span>Spread (σ, cm)</span><output id="nsOut">7</output><input type="range" id="ns" min="3" max="15" step="0.5" value="7"></label>
+          <label class="ctl"><span>From (cm)</span><output id="naOut">160</output><input type="range" id="na" min="120" max="220" step="0.5" value="160"></label>
+          <label class="ctl"><span>To (cm)</span><output id="nbOut">180</output><input type="range" id="nb" min="120" max="220" step="0.5" value="180"></label>
+          <div class="btnrow">
+            <button class="btn" type="button" data-sig="1">μ ± 1σ</button>
+            <button class="btn" type="button" data-sig="2">μ ± 2σ</button>
+            <button class="btn" type="button" data-sig="3">μ ± 3σ</button>
+            <button class="btn quiet" type="button" id="nDoor">Taller than a 200 cm door</button>
+          </div>
+          <div class="readout"><div class="stat big"><b id="nProb">–</b><small>of people fall in this range</small></div></div>
+          <div class="formula" id="normFormula"></div>
+        </div>
+        <div>
+          <div class="chart-box"><canvas id="normChart"></canvas></div>
+          <p class="chart-cap">Total area under the curve is 1, so the shaded area is a probability.</p>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>Clothing sizes, door heights, exam score scaling, measurement errors in a lab, and machine tolerances in factories are all planned around the normal curve.</div>
+        <div><h4>What to notice</h4>Whatever μ and σ are, about 68% of values sit within 1σ of the mean, 95% within 2σ and 99.7% within 3σ. The z-score tells you how many σ a value is from the mean.</div>
+      </div>
+    </article>
+
+    <div class="quiz" id="quiz-1"></div>
+  </section>
+
+  <!-- ================= LESSON 2 ================= -->
+  <section class="view" id="view-sampling" hidden>
+    <div class="lesson-head">
+      <div>
+        <p class="lesson-of">Lesson 2 of 3</p>
+        <h2>Sampling, the central limit theorem and confidence intervals</h2>
+        <p>We almost never see a whole population, only a sample. The central limit theorem explains why averages of samples behave so predictably, and confidence intervals turn that into an honest statement about what we don’t know.</p>
+      </div>
+      <aside class="missions"><h4>Missions</h4><ul id="missions-2"></ul></aside>
+    </div>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">2.1</span><h3>The central limit theorem machine</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>Individual values can be messy or lopsided, but the averages of large enough samples always form a bell curve around the true average. That’s why we can trust averages even when we don’t know what the population looks like.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">Choose a population, even a lopsided one. Take a sample of size <b>n</b>, record its average, and repeat many times. Watch the shape of those averages.</p>
+          <div class="seg" id="cltPop">
+            <button type="button" data-v="dice" aria-pressed="true">Dice rolls</button>
+            <button type="button" data-v="wait" aria-pressed="false">Bus wait times</button>
+            <button type="button" data-v="exam" aria-pressed="false">Exam scores</button>
+          </div>
+          <div><div class="chart-box small"><canvas id="popChart"></canvas></div><p class="chart-cap" id="popCap">The population you are sampling from.</p></div>
+          <label class="ctl"><span>Sample size (n)</span><output id="cnOut">5</output><input type="range" id="cn" min="1" max="50" step="1" value="5"></label>
+          <div class="btnrow">
+            <button class="btn" type="button" data-draw="1">Take 1 sample</button>
+            <button class="btn" type="button" data-draw="100">100 samples</button>
+            <button class="btn primary" type="button" data-draw="1000">1000 samples</button>
+            <button class="btn quiet" type="button" id="cltReset">Reset</button>
+          </div>
+          <p class="sample-line" id="cltSample"></p>
+        </div>
+        <div>
+          <div class="chart-box tall"><canvas id="cltChart"></canvas></div>
+          <div class="readout" style="margin-top:10px">
+            <div class="stat"><b id="cCount">0</b><small>sample means</small></div>
+            <div class="stat"><b id="cMean">–</b><small>average of means</small></div>
+            <div class="stat"><b id="cSd">–</b><small>spread of means</small></div>
+            <div class="stat"><b id="cSe">–</b><small>CLT prediction σ/√n</small></div>
+          </div>
+          <div class="formula" id="cltFormula" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>Pollsters, factories and doctors rarely know the shape of the population. Because of the CLT they can still use the normal curve for averages of large enough samples.</div>
+        <div><h4>What to notice</h4>With n = 1 the means look exactly like the population. As n grows the means pile into a bell centred on μ, and the bell narrows like σ/√n.</div>
+      </div>
+    </article>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">2.2</span><h3>The confidence interval factory</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>One sample can’t tell us the exact truth, so we give a range instead: “the true average is probably between 4.6 and 5.6 hours.” A 95% interval means this method catches the truth about 95 times out of 100.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">Pretend we know the truth: students average <b>μ = 5.0 hours</b> of screen time a day, with σ = 1.5. A researcher who doesn’t know this takes one sample and builds an interval. How often does the interval catch the truth?</p>
+          <label class="ctl"><span>Students per sample (n)</span><output id="inOut">25</output><input type="range" id="in" min="5" max="100" step="1" value="25"></label>
+          <div class="seg" id="ciConf"><button type="button" data-v="90" aria-pressed="false">90%</button><button type="button" data-v="95" aria-pressed="true">95%</button><button type="button" data-v="99" aria-pressed="false">99%</button></div>
+          <div class="btnrow">
+            <button class="btn" type="button" data-ci="1">Build 1 interval</button>
+            <button class="btn primary" type="button" data-ci="20">Build 20</button>
+            <button class="btn quiet" type="button" id="ciReset">Reset</button>
+          </div>
+          <div class="readout">
+            <div class="stat big"><b id="ciRate">–</b><small>caught the true μ</small></div>
+            <div class="stat"><b id="ciCount">0</b><small>intervals built</small></div>
+            <div class="stat"><b id="ciWidth">–</b><small>interval width (h)</small></div>
+          </div>
+          <div class="formula" id="ciFormula"></div>
+        </div>
+        <div>
+          <div class="chart-box tall"><canvas id="ciChart"></canvas></div>
+          <p class="chart-cap">Newest interval on top. Green caught μ = 5.0, red missed it.</p>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>A poll that says “42% support, ±3%” is reporting a confidence interval. So is a lab result with an error bar, or a market survey estimating average spending.</div>
+        <div><h4>What to notice</h4>“95%” describes the method, not one interval: in the long run, 95% of intervals built this way catch μ. Higher confidence means wider intervals; bigger n means narrower ones.</div>
+      </div>
+    </article>
+
+    <div class="quiz" id="quiz-2"></div>
+  </section>
+
+  <!-- ================= LESSON 3 ================= -->
+  <section class="view" id="view-testing" hidden>
+    <div class="lesson-head">
+      <div>
+        <p class="lesson-of">Lesson 3 of 3</p>
+        <h2>Hypothesis testing and linear regression</h2>
+        <p>A hypothesis test asks whether a pattern in data is real or just sampling luck. Regression goes further and describes how one variable moves with another, so you can make predictions.</p>
+      </div>
+      <aside class="missions"><h4>Missions</h4><ul id="missions-3"></ul></aside>
+    </div>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">3.1</span><h3>The juice bottle case</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>A hypothesis test checks whether a claim still makes sense after looking at data. If the data would be very surprising when the claim is true (a small p-value), we reject the claim. Otherwise we don’t have enough evidence against it.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">A juice company claims its bottles hold <b>500 ml</b> on average (σ = 10 ml). Like a court, we treat the claim as innocent, <b>H₀: μ = 500</b>, until the data give strong evidence against it, <b>H₁: μ ≠ 500</b>.</p>
+          <div class="seg" id="tMode"><button type="button" data-v="free" aria-pressed="true">Free lab</button><button type="button" data-v="case" aria-pressed="false">Detective cases</button></div>
+          <label class="ctl" id="tTrueWrap"><span>Real average fill (you decide)</span><output id="ttOut">497.0</output><input type="range" id="tt" min="490" max="510" step="0.5" value="497"></label>
+          <label class="ctl"><span>Bottles sampled (n)</span><output id="tnOut">25</output><input type="range" id="tn" min="5" max="100" step="1" value="25"></label>
+          <div class="seg" id="tAlpha"><button type="button" data-v="0.01" aria-pressed="false">α = 0.01</button><button type="button" data-v="0.05" aria-pressed="true">α = 0.05</button><button type="button" data-v="0.10" aria-pressed="false">α = 0.10</button></div>
+          <div class="btnrow">
+            <button class="btn primary" type="button" id="tSample">Take a sample</button>
+            <button class="btn" type="button" id="tNewCase" hidden>Open a new case</button>
+          </div>
+          <div class="btnrow" id="tVerdictBtns" hidden>
+            <button class="btn danger" type="button" id="tGuilty">Reject H₀: they underfill or overfill</button>
+            <button class="btn good" type="button" id="tInnocent">Not enough evidence</button>
+          </div>
+          <div id="tResult" class="verdict info">Take a sample to start the test.<span>The p-value is the chance of seeing a sample this extreme if H₀ were true.</span></div>
+          <div class="hist-row" id="tScore"></div>
+        </div>
+        <div>
+          <div class="chart-box"><canvas id="testChart"></canvas></div>
+          <p class="chart-cap">Standard normal curve under H₀. Red tails: rejection region of size α. Line: your z-statistic.</p>
+          <div class="formula" id="testFormula" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>A/B tests on websites, drug trials, food safety audits and fraud checks all ask the same question: is this difference real, or could chance alone explain it?</div>
+        <div><h4>What to notice</h4>Rejecting a true H₀ is a Type I error (its rate is α). Missing a real difference is a Type II error. Bigger samples make real differences easier to detect.</div>
+      </div>
+    </article>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">3.2</span><h3>Regression playground</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>Regression draws the best straight line through data so you can predict one thing from another, like exam score from hours studied. The correlation r shows how closely the points follow that line: near +1 or −1 is tight, near 0 means no pattern.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">Click the chart to add students: hours studied (x) and exam score (y). The least-squares line updates instantly, and <b>r</b> tells you how tightly points follow it.</p>
+          <div class="btnrow">
+            <button class="btn quiet" type="button" data-preset="pos">Study vs score</button>
+            <button class="btn quiet" type="button" data-preset="neg">Gaming vs score</button>
+            <button class="btn quiet" type="button" data-preset="none">No pattern</button>
+            <button class="btn quiet" type="button" data-preset="out">Add an outlier</button>
+          </div>
+          <div class="btnrow">
+            <button class="btn" type="button" id="rUndo">Undo point</button>
+            <button class="btn" type="button" id="rClear">Clear</button>
+            <button class="btn" type="button" id="rRes" aria-pressed="false">Show residuals</button>
+          </div>
+          <div class="readout">
+            <div class="stat big"><b id="rR">–</b><small>correlation r</small></div>
+            <div class="stat"><b id="rR2">–</b><small>R² explained</small></div>
+            <div class="stat"><b id="rN">0</b><small>points</small></div>
+          </div>
+          <p class="sample-line" id="rWords">Add at least two points to fit a line.</p>
+          <label class="ctl"><span>Predict for x =</span><output id="rxOut">6.0</output><input type="range" id="rx" min="0" max="10" step="0.5" value="6"></label>
+          <div class="formula" id="regFormula"></div>
+        </div>
+        <div>
+          <div class="chart-box tall"><canvas id="regChart" class="clickable"></canvas></div>
+          <p class="chart-cap">Click anywhere inside the chart to add a point. Amber star: your prediction.</p>
+        </div>
+      </div>
+      <div class="takeaway">
+        <div><h4>Where you see it</h4>Forecasting sales from advertising spend, house prices from area, fuel use from engine size, or crop yield from rainfall.</div>
+        <div><h4>What to notice</h4>The line minimises the sum of squared residuals, so a single outlier can drag it. A strong r shows association, never causation on its own.</div>
+      </div>
+    </article>
+
+    <article class="lab">
+      <header class="lab-head"><span class="lab-no">3.3</span><h3>Guess the correlation</h3></header>
+      <div class="simple"><h4>In simple words</h4><p>This is practice for reading scatter plots. The more tightly the points hug a straight line, the closer r is to +1 (going up) or −1 (going down). A shapeless cloud has r near 0.</p></div>
+      <div class="lab-grid">
+        <div class="lab-side">
+          <p class="story">Train your eye. Look at the cloud and guess its correlation coefficient, from −1 (perfect downhill line) to +1 (perfect uphill line).</p>
+          <label class="ctl"><span>Your guess for r</span><output id="grOut">0.00</output><input type="range" id="gr" min="-1" max="1" step="0.05" value="0"></label>
+          <div class="btnrow">
+            <button class="btn primary" type="button" id="gLock">Lock in guess</button>
+            <button class="btn" type="button" id="gNext">Next cloud</button>
+          </div>
+          <div id="gResult" class="verdict info">Within ±0.10 counts as a hit.<span>Three hits earn the Correlation sniper badge.</span></div>
+          <div class="readout">
+            <div class="stat"><b id="gHits">0</b><small>hits</small></div>
+            <div class="stat"><b id="gPts">0</b><small>score</small></div>
+          </div>
+          <div class="hist-row" id="gHist"></div>
+        </div>
+        <div><div class="chart-box tall"><canvas id="guessChart"></canvas></div></div>
+      </div>
+    </article>
+
+    <div class="quiz" id="quiz-3"></div>
+  </section>
+</main>
+
+<footer>Your XP and badges are saved in this browser. <button class="link" type="button" id="resetAll">Reset all progress</button></footer>
+
+<div id="toasts" aria-live="polite"></div>
+
+<div class="overlay" id="badgeOverlay" role="dialog" aria-modal="true" aria-labelledby="bgTitle">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <h3 id="bgTitle">Your badges</h3>
+      <button class="btn quiet" type="button" data-close>Close</button>
+    </div>
+    <p style="color:var(--muted);margin:0" id="bgSub"></p>
+    <div class="badge-grid" id="badgeGrid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="unlockOverlay" role="dialog" aria-modal="true" aria-labelledby="ulName">
+  <div class="panel unlock">
+    <p style="margin:0;font-weight:700;color:var(--violet)">Badge unlocked</p>
+    <div class="medal" id="ulIcon">🏅</div>
+    <h3 id="ulName">Badge</h3>
+    <p id="ulDesc"></p>
+    <button class="btn primary" type="button" id="ulClose">Keep learning</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const REDUCE=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- maths ---------------- */
+const SQ2PI=Math.sqrt(2*Math.PI);
+const LF=[0];for(let i=1;i<=500;i++)LF[i]=LF[i-1]+Math.log(i);
+function binomPmf(k,n,p){if(k<0||k>n)return 0;if(p<=0)return k===0?1:0;if(p>=1)return k===n?1:0;return Math.exp(LF[n]-LF[k]-LF[n-k]+k*Math.log(p)+(n-k)*Math.log(1-p));}
+function comb(n,k){let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r);}
+function poisPmf(k,l){return Math.exp(-l+k*Math.log(l)-LF[k]);}
+function normPdf(x,m,s){const z=(x-m)/s;return Math.exp(-0.5*z*z)/(s*SQ2PI);}
+function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+function normCdf(x,m,s){return 0.5*(1+erf((x-m)/(s*Math.SQRT2)));}
+let spare=null;
+function randn(){if(spare!==null){const v=spare;spare=null;return v;}let u=0;while(u===0)u=Math.random();const v=Math.random();const r=Math.sqrt(-2*Math.log(u));spare=r*Math.sin(2*Math.PI*v);return r*Math.cos(2*Math.PI*v);}
+function randPois(l){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=Math.random();}while(p>L);return k-1;}
+const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
+const sd=a=>{const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1));};
+const f=(x,d=2)=>Number(x).toFixed(d);
+function pct(x){if(x<0.001&&x>0)return '<0.1%';if(x>0.999&&x<1)return '>99.9%';return (x*100).toFixed(1)+'%';}
+function fp(x){return x<0.0001?x.toExponential(2):x.toFixed(4);}
+const minus=s=>String(s).replace(/^-/,'−');
+
+/* ---------------- colours ---------------- */
+const C={};
+function readColors(){const s=getComputedStyle(document.documentElement);
+  ['ink','muted','line','blue','blue-mid','blue-soft','hi','amber','ok','bad','violet','surface','paper'].forEach(k=>{C[k.replace('-','_')]=s.getPropertyValue('--'+k).trim();});}
+readColors();
+function alpha(hex,a){const h=hex.replace('#','');const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+/* ---------------- progress & gamification ---------------- */
+const KEY='statlab-progress-v1';
+let P={xp:0,badges:[],missions:[],quiz:{},quizXP:[],galton:0};
+try{const raw=localStorage.getItem(KEY);if(raw)P=Object.assign(P,JSON.parse(raw));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(P));}catch(e){}}
+
+const BADGES={
+  first:{icon:'🌱',name:'First steps',desc:'You completed your first mission.'},
+  galton:{icon:'⚪',name:'Bean machine',desc:'You dropped 200 balls and watched a bell curve build itself.'},
+  lln:{icon:'🪙',name:'Law of large numbers',desc:'500 flips: you watched randomness settle into a reliable rate.'},
+  binom:{icon:'🛍️',name:'Binomial builder',desc:'You explored five different binomial worlds.'},
+  poisson:{icon:'📞',name:'Poisson pro',desc:'You simulated a full help-desk shift of random arrivals.'},
+  bell:{icon:'🔔',name:'Bell ringer',desc:'You uncovered the 68–95–99.7 rule for yourself.'},
+  quiz1:{icon:'🧠',name:'Probability pro',desc:'Every lesson 1 checkpoint question answered correctly.'},
+  clt:{icon:'📊',name:'CLT witness',desc:'A skewed population, 1000 samples, and a bell curve anyway.'},
+  ci:{icon:'🎣',name:'Interval hunter',desc:'You built 100 confidence intervals and checked their catch rate.'},
+  quiz2:{icon:'🧭',name:'Sampling sage',desc:'Every lesson 2 checkpoint question answered correctly.'},
+  detective:{icon:'🕵️',name:'Data detective',desc:'Five correct verdicts in the juice bottle cases.'},
+  line:{icon:'📈',name:'Line whisperer',desc:'You placed 10 points yourself and fitted a regression line.'},
+  sniper:{icon:'🎯',name:'Correlation sniper',desc:'Three guesses of r within ±0.10.'},
+  quiz3:{icon:'⚖️',name:'Hypothesis hero',desc:'Every lesson 3 checkpoint question answered correctly.'},
+  grand:{icon:'🏆',name:'Grand statistician',desc:'Every mission in StatLab complete. Outstanding.'}
+};
+const MISSIONS=[
+  {id:'galton',lesson:1,text:'Drop 200 balls through the board at the top',xp:30,badge:'galton'},
+  {id:'flip500',lesson:1,text:'Flip a coin 500 times in one run',xp:40,badge:'lln'},
+  {id:'dice300',lesson:1,text:'Roll the die 300 times and watch the share of 6s',xp:15},
+  {id:'binomSym',lesson:1,text:'Make the binomial perfectly symmetric',xp:15},
+  {id:'binom5',lesson:1,text:'Try five different (n, p) settings',xp:40,badge:'binom'},
+  {id:'poisson',lesson:1,text:'Simulate a 60-minute help-desk shift',xp:40,badge:'poisson'},
+  {id:'bell',lesson:1,text:'Reveal the ±1σ, ±2σ and ±3σ areas',xp:40,badge:'bell'},
+  {id:'quiz1',lesson:1,text:'Answer every checkpoint question correctly',xp:30,badge:'quiz1'},
+  {id:'clt',lesson:2,text:'Bus wait times, n ≥ 30, 1000 samples',xp:40,badge:'clt'},
+  {id:'cltN1',lesson:2,text:'Draw 1000 samples with n = 1 and compare',xp:15},
+  {id:'ci100',lesson:2,text:'Build 100 confidence intervals',xp:40,badge:'ci'},
+  {id:'ci99',lesson:2,text:'Build 20 intervals at 99% confidence',xp:15},
+  {id:'quiz2',lesson:2,text:'Answer every checkpoint question correctly',xp:30,badge:'quiz2'},
+  {id:'test1',lesson:3,text:'Run your first hypothesis test',xp:15},
+  {id:'detective',lesson:3,text:'Reach 5 correct verdicts in detective cases',xp:40,badge:'detective'},
+  {id:'reg10',lesson:3,text:'Click to add 10 points of your own and fit a line',xp:40,badge:'line'},
+  {id:'outlier',lesson:3,text:'Add an outlier and watch r change',xp:15},
+  {id:'sniper',lesson:3,text:'Guess r within ±0.10 three times',xp:40,badge:'sniper'},
+  {id:'quiz3',lesson:3,text:'Answer every checkpoint question correctly',xp:30,badge:'quiz3'}
+];
+const TITLES=['Curious mind','Coin flipper','Pattern spotter','Distribution tamer','Sample taker','Interval builder','Evidence weigher','Data detective','Statistician'];
+function levelInfo(xp){const lvl=Math.floor(xp/100)+1;return{lvl,into:xp%100,title:TITLES[Math.min(lvl-1,TITLES.length-1)]};}
+
+function renderXP(){
+  const L=levelInfo(P.xp);
+  $('#lvlNum').textContent=L.lvl;$('#lvlTitle').textContent=L.title;
+  $('#xpText').textContent=`${L.into} of 100 XP to level ${L.lvl+1}`;
+  $('#xpBar').setAttribute('aria-valuenow',L.into);
+  const w=L.into+'%';
+  if(window.gsap&&!REDUCE)gsap.to('#xpFill',{width:w,duration:.8,ease:'power3.out'});else $('#xpFill').style.width=w;
+  $('#badgeCount').textContent=P.badges.length;
+}
+function floatXP(n){const s=document.createElement('span');s.className='xp-float';s.textContent='+'+n+' XP';$('#meter').appendChild(s);setTimeout(()=>s.remove(),1400);}
+function toast(html,kind){const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.innerHTML=html;$('#toasts').appendChild(t);setTimeout(()=>{t.style.transition='opacity .4s';t.style.opacity='0';setTimeout(()=>t.remove(),400);},3600);}
+function burst(big){if(REDUCE||typeof confetti!=='function')return;
+  const colors=[C.blue,C.hi,C.ok,C.violet,C.bad];
+  confetti({particleCount:big?160:70,spread:big?100:60,origin:{y:.65},colors,zIndex:200});
+  if(big)setTimeout(()=>confetti({particleCount:80,angle:60,spread:60,origin:{x:0,y:.7},colors,zIndex:200}),200),setTimeout(()=>confetti({particleCount:80,angle:120,spread:60,origin:{x:1,y:.7},colors,zIndex:200}),350);}
+function addXP(n,why){
+  const before=levelInfo(P.xp).lvl;P.xp+=n;save();renderXP();floatXP(n);
+  if(why)toast(`<b>+${n} XP</b> ${why}`);
+  const after=levelInfo(P.xp);
+  if(after.lvl>before){toast(`<b>Level ${after.lvl}!</b> You’re now a ${after.title.toLowerCase()}.`,'level');burst(false);}
+}
+function completeMission(id){
+  if(P.missions.includes(id))return;
+  const m=MISSIONS.find(x=>x.id===id);if(!m)return;
+  P.missions.push(id);save();
+  addXP(m.xp,'Mission complete: '+m.text.toLowerCase().replace(/^./,c=>c.toUpperCase()));
+  unlockBadge('first');
+  if(m.badge)unlockBadge(m.badge);
+  if(MISSIONS.every(x=>P.missions.includes(x.id)))unlockBadge('grand');
+  renderMissions();
+}
+const queue=[];let showing=false;
+function unlockBadge(id){if(P.badges.includes(id))return;P.badges.push(id);save();renderXP();queue.push(id);if(!showing)nextUnlock();}
+function nextUnlock(){
+  const id=queue.shift();if(!id){showing=false;return;}
+  showing=true;const b=BADGES[id];
+  $('#ulIcon').textContent=b.icon;$('#ulName').textContent=b.name;$('#ulDesc').textContent=b.desc;
+  const o=$('#unlockOverlay');o.classList.add('open');$('#ulClose').focus();
+  if(window.gsap&&!REDUCE){gsap.fromTo('#ulIcon',{scale:0,rotation:-40},{scale:1,rotation:0,duration:1,ease:'elastic.out(1,0.45)'});gsap.fromTo('#unlockOverlay .panel',{y:30,opacity:0},{y:0,opacity:1,duration:.35,ease:'power2.out'});}
+  burst(true);
+}
+$('#ulClose').addEventListener('click',()=>{$('#unlockOverlay').classList.remove('open');setTimeout(nextUnlock,150);});
+
+function renderMissions(){
+  [1,2,3].forEach(L=>{
+    const list=MISSIONS.filter(m=>m.lesson===L);
+    $('#missions-'+L).innerHTML=list.map(m=>`<li class="${P.missions.includes(m.id)?'done':''}"><span class="tick" aria-hidden="true"></span><span>${m.text}</span><em>+${m.xp} XP${m.badge?' '+BADGES[m.badge].icon:''}</em></li>`).join('');
+    const done=list.filter(m=>P.missions.includes(m.id)).length;
+    $('#tabc-'+L).textContent=`${done} of ${list.length} missions`;
+    $$('.tab')[L-1].classList.toggle('complete',done===list.length);
+  });
+}
+function renderBadges(){
+  $('#bgSub').textContent=`${P.badges.length} of ${Object.keys(BADGES).length} earned, ${P.xp} XP in total.`;
+  $('#badgeGrid').innerHTML=Object.entries(BADGES).map(([id,b])=>{const got=P.badges.includes(id);
+    return `<div class="bcard ${got?'got':'locked'}"><span class="ic">${b.icon}</span><b>${b.name}</b><small>${got?b.desc:'Locked: '+(MISSIONS.find(m=>m.badge===id)||{text:id==='first'?'Complete any mission':'Complete every mission'}).text.toLowerCase()}</small></div>`;}).join('');
+}
+$('#openBadges').addEventListener('click',()=>{renderBadges();$('#badgeOverlay').classList.add('open');$('#badgeOverlay [data-close]').focus();});
+$('#badgeOverlay').addEventListener('click',e=>{if(e.target.id==='badgeOverlay'||e.target.hasAttribute('data-close'))$('#badgeOverlay').classList.remove('open');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#badgeOverlay').classList.remove('open');if($('#unlockOverlay').classList.contains('open'))$('#ulClose').click();}});
+$('#resetAll').addEventListener('click',()=>{if(confirm('Reset all XP, badges and missions?')){P={xp:0,badges:[],missions:[],quiz:{},quizXP:[],galton:0};save();location.reload();}});
+
+/* ---------------- helpers ---------------- */
+function seg(el,cb){el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('button',el).forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));cb(b.dataset.v);});}
+function segVal(el){const b=$('button[aria-pressed="true"]',el);return b?b.dataset.v:null;}
+function range(id,fmt,cb,onChange){const el=$('#'+id),out=$('#'+id+'Out');const upd=()=>{out.textContent=fmt(+el.value);};el.addEventListener('input',()=>{upd();cb&&cb();});if(onChange)el.addEventListener('change',onChange);upd();return el;}
+function setRange(el,v){el.value=v;el.dispatchEvent(new Event('input'));}
+function spin(el){if(REDUCE)return;el.classList.remove('spin');void el.offsetWidth;el.classList.add('spin');}
+function hist(vals,lo,hi,bins){const w=(hi-lo)/bins,c=new Array(bins).fill(0);vals.forEach(v=>{if(v<lo||v>hi)return;let i=Math.floor((v-lo)/w);if(i===bins)i--;c[i]++;});return{counts:c,centers:c.map((_,i)=>lo+w*(i+.5)),w};}
+const axT=t=>({display:true,text:t,color:C.muted,font:{size:12}});
+const overlay={id:'overlay',afterDatasetsDraw(ch){const ctx=ch.ctx,a=ch.chartArea;
+  (ch.$segments||[]).forEach(s=>{ctx.save();ctx.strokeStyle=s.color;ctx.lineWidth=1.5;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(ch.scales.x.getPixelForValue(s.x1),ch.scales.y.getPixelForValue(s.y1));ctx.lineTo(ch.scales.x.getPixelForValue(s.x2),ch.scales.y.getPixelForValue(s.y2));ctx.stroke();ctx.restore();});
+  (ch.$vlines||[]).forEach(l=>{const px=ch.scales.x.getPixelForValue(l.x);if(px<a.left-1||px>a.right+1)return;ctx.save();ctx.strokeStyle=l.color;ctx.lineWidth=l.width||2;if(l.dash)ctx.setLineDash(l.dash);ctx.beginPath();ctx.moveTo(px,a.top);ctx.lineTo(px,a.bottom);ctx.stroke();
+    if(l.label){ctx.setLineDash([]);ctx.font="700 12px 'Atkinson Hyperlegible', sans-serif";const right=px>a.right-120;ctx.textAlign=right?'right':'left';ctx.fillStyle=l.color;ctx.fillText(l.label,px+(right?-6:6),a.top+14);}ctx.restore();});
+}};
+
+const hasChart=typeof Chart!=='undefined';
+if(hasChart){
+  Chart.register(overlay);
+  Chart.defaults.font.family="'Atkinson Hyperlegible', system-ui, sans-serif";
+  Chart.defaults.color=C.muted;Chart.defaults.borderColor=alpha(C.line,.8);
+  Chart.defaults.maintainAspectRatio=false;Chart.defaults.plugins.legend.display=false;
+  Chart.defaults.animation.duration=REDUCE?0:350;
+  Chart.defaults.plugins.tooltip.backgroundColor=C.ink;
+}else{$('#libNotice').style.display='block';}
+
+/* ================= Galton board ================= */
+function initGalton(){
+  const cv=$('#galton'),ctx=cv.getContext('2d'),ROWS=12;
+  let W=0,H=0,bins=new Array(ROWS+1).fill(0),balls=[],q=0,landed=0,spawnT=0,last=0,running=false;
+  const expP=[...Array(ROWS+1)].map((_,k)=>binomPmf(k,ROWS,.5));
+  function geo(){const sx=Math.min(W/(ROWS+3),36),top=22,pegH=H*.48,gy=pegH/ROWS;return{sx,top,gy,binTop:top+pegH+16,bottom:H-8};}
+  const px=(r,j,g)=>W/2+(j-r/2)*g.sx;
+  function resize(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;W=r.width;H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);ctx.setTransform(d,0,0,d,0,0);draw();}
+  function draw(){
+    ctx.clearRect(0,0,W,H);const g=geo();
+    ctx.fillStyle=C.ink;
+    for(let r=0;r<ROWS;r++)for(let j=0;j<=r;j++){ctx.beginPath();ctx.arc(px(r,j,g),g.top+r*g.gy,2.6,0,Math.PI*2);ctx.fill();}
+    const bh=g.bottom-g.binTop,maxC=Math.max(4,...bins,landed*expP[ROWS/2]*1.05);
+    ctx.strokeStyle=alpha(C.line,1);ctx.lineWidth=1;
+    for(let k=0;k<=ROWS+1;k++){const x=W/2+(k-.5-ROWS/2)*g.sx;ctx.beginPath();ctx.moveTo(x,g.binTop);ctx.lineTo(x,g.bottom);ctx.stroke();}
+    for(let k=0;k<=ROWS;k++){const x=W/2+(k-ROWS/2)*g.sx,h=bins[k]/maxC*bh;ctx.fillStyle=C.blue;ctx.fillRect(x-g.sx*.38,g.bottom-h,g.sx*.76,h);}
+    ctx.strokeStyle=C.ink;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W/2-(ROWS/2+.6)*g.sx,g.bottom);ctx.lineTo(W/2+(ROWS/2+.6)*g.sx,g.bottom);ctx.stroke();
+    if(landed>0){ctx.strokeStyle=C.amber;ctx.lineWidth=2.5;ctx.setLineDash([6,4]);ctx.beginPath();
+      for(let k=0;k<=ROWS;k++){const x=W/2+(k-ROWS/2)*g.sx,y=g.bottom-landed*expP[k]/maxC*bh;k?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.setLineDash([]);}
+    balls.forEach(b=>{let x,y;
+      if(b.t<ROWS){const i=Math.floor(b.t),fr=b.t-i;x=px(i,b.c[i],g)+(px(i+1,b.c[i+1],g)-px(i,b.c[i],g))*fr;y=g.top+(i+fr)*g.gy-6*Math.sin(Math.PI*fr)-5;}
+      else{const fr=Math.min(1,(b.t-ROWS)/1.4);x=px(ROWS,b.c[ROWS],g);y=g.top+ROWS*g.gy-5+fr*(g.bottom-(g.top+ROWS*g.gy)-8);}
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=C.hi;ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=C.ink;ctx.stroke();});
+  }
+  function makeBall(){const c=[0];for(let i=0;i<ROWS;i++)c.push(c[i]+(Math.random()<.5?1:0));return{c,t:0};}
+  function land(b){bins[b.c[ROWS]]++;landed++;P.galton=(P.galton||0)+1;}
+  function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+    spawnT-=dt;while(q>0&&spawnT<=0){balls.push(makeBall());q--;spawnT+=.05;}
+    balls.forEach(b=>b.t+=dt*13);
+    const done=balls.filter(b=>b.t>=ROWS+1.4);done.forEach(land);balls=balls.filter(b=>b.t<ROWS+1.4);
+    if(done.length)status();
+    draw();
+    if(balls.length||q>0)requestAnimationFrame(loop);else{running=false;save();}
+  }
+  function status(){$('#gCount').textContent=landed;if(P.galton>=200)completeMission('galton');}
+  function drop(k){if(REDUCE){for(let i=0;i<k;i++)land(makeBall());status();save();draw();return;}
+    q+=k;if(!running){running=true;last=performance.now();spawnT=0;requestAnimationFrame(loop);}}
+  $('#g1').addEventListener('click',()=>drop(1));
+  $('#g50').addEventListener('click',()=>drop(50));
+  $('#g0').addEventListener('click',()=>{bins.fill(0);landed=0;balls=[];q=0;status();draw();});
+  new ResizeObserver(resize).observe(cv);resize();
+}
+
+/* ================= Lesson 1 ================= */
+function initCoin(){
+  let mode='coin',n=0,hits=0,pts=[],timer=null;const face=$('#coinFace');const DIE=['⚀','⚁','⚂','⚃','⚄','⚅'];
+  const ch=new Chart($('#coinChart'),{type:'line',data:{datasets:[
+    {data:[],borderColor:C.blue,borderWidth:2.5,pointRadius:0,tension:0},
+    {data:[],borderColor:C.amber,borderWidth:2,borderDash:[6,5],pointRadius:0}]},
+    options:{animation:false,parsing:false,normalized:true,plugins:{tooltip:{enabled:false}},
+      scales:{x:{type:'linear',min:1,max:10,title:axT('Number of trials')},y:{min:0,max:1,title:axT('Proportion')}}}});
+  const target=()=>mode==='coin'?.5:1/6;
+  function step(k){let lastV;
+    for(let i=0;i<k;i++){if(mode==='coin'){lastV=Math.random()<.5?'H':'T';if(lastV==='H')hits++;}else{lastV=1+Math.floor(Math.random()*6);if(lastV===6)hits++;}n++;pts.push({x:n,y:hits/n});}
+    if(pts.length>900)pts=pts.filter((p,i)=>i%2===0||i===pts.length-1);
+    face.textContent=mode==='coin'?lastV:DIE[lastV-1];if(k<=10)spin(face);
+    render();
+  }
+  function render(){
+    ch.data.datasets[0].data=pts;const mx=Math.max(n,10);
+    ch.data.datasets[1].data=[{x:1,y:target()},{x:mx,y:target()}];ch.options.scales.x.max=mx;ch.update('none');
+    $('#coinN').textContent=n;$('#coinHits').textContent=hits;$('#coinHitsLbl').textContent=mode==='coin'?'heads':'sixes';
+    $('#coinGap').textContent=n?f(Math.abs(hits/n-target()),3):'–';
+    $('#coinFormula').innerHTML=`<span class="lbl">Estimated probability</span>p̂ = ${mode==='coin'?'heads':'sixes'} ÷ trials = ${hits} ÷ ${n||'n'} = <b>${n?f(hits/n,3):'?'}</b> &nbsp; (true value ${mode==='coin'?'0.5':'1/6 ≈ 0.167'})`;
+    if(mode==='coin'&&n>=500)completeMission('flip500');
+    if(mode==='die'&&n>=300)completeMission('dice300');
+  }
+  function stop(){if(timer){clearInterval(timer);timer=null;$('#coinAuto').textContent='Auto-run';}}
+  function reset(){stop();n=0;hits=0;pts=[];face.textContent='?';render();}
+  $$('[data-flip]').forEach(b=>b.addEventListener('click',()=>step(+b.dataset.flip)));
+  $('#coinAuto').addEventListener('click',()=>{if(timer)return stop();$('#coinAuto').textContent='Pause';timer=setInterval(()=>step(4),40);});
+  $('#coinReset').addEventListener('click',reset);
+  seg($('#coinMode'),v=>{mode=v;face.classList.toggle('die',v==='die');reset();});
+  render();
+}
+
+function initBinom(){
+  const seen=new Set();
+  const ch=new Chart($('#binomChart'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:3}]},
+    options:{scales:{x:{title:axT('Number of sales (k)'),grid:{display:false}},y:{beginAtZero:true,title:axT('Probability')}},
+      plugins:{tooltip:{callbacks:{title:c=>'k = '+c[0].label,label:c=>'P = '+fp(c.parsed.y)}}}}});
+  let nE,pE,kE;
+  function update(){
+    const n=+nE.value,p=+pE.value;kE.max=n;if(+kE.value>n){kE.value=n;}$('#bkOut').textContent=kE.value;const k=+kE.value;
+    const pmf=[...Array(n+1)].map((_,i)=>binomPmf(i,n,p));
+    ch.data.labels=pmf.map((_,i)=>i);ch.data.datasets[0].data=pmf;
+    ch.data.datasets[0].backgroundColor=pmf.map((_,i)=>i===k?C.blue:i>k?C.blue_mid:alpha(C.blue,.18));ch.update();
+    const pge=pmf.slice(k).reduce((s,x)=>s+x,0);
+    $('#bPk').textContent=pct(pmf[k]);$('#bPge').textContent=pct(Math.min(1,pge));
+    $('#bMean').textContent=f(n*p,1);
+    $('#binomFormula').innerHTML=`<span class="lbl">P(X = k) = C(n, k) · p<sup>k</sup> · (1 − p)<sup>n − k</sup></span>P(X = ${k}) = ${comb(n,k).toLocaleString()} · ${f(p)}<sup>${k}</sup> · ${f(1-p)}<sup>${n-k}</sup> = <b>${fp(pmf[k])}</b> &nbsp; σ = √(np(1−p)) = ${f(Math.sqrt(n*p*(1-p)))}`;
+  }
+  function changed(){const n=+nE.value,p=+pE.value;seen.add(n+'|'+p);if(Math.abs(p-.5)<1e-9)completeMission('binomSym');if(seen.size>=5)completeMission('binom5');}
+  nE=range('bn',v=>v,update,changed);pE=range('bp',v=>f(v),update,changed);kE=range('bk',v=>v,update);
+  update();
+}
+
+function initPoisson(){
+  let obs=null;
+  const ch=new Chart($('#poisChart'),{type:'bar',data:{labels:[],datasets:[
+    {label:'Poisson probability',data:[],backgroundColor:[],borderRadius:3,order:2},
+    {label:'Your shift',type:'line',data:[],showLine:false,pointRadius:6,pointBackgroundColor:C.hi,pointBorderColor:C.ink,pointBorderWidth:2,order:1}]},
+    options:{plugins:{legend:{display:true,labels:{boxWidth:12,usePointStyle:true}},tooltip:{callbacks:{title:c=>c[0].label+' calls',label:c=>c.dataset.label+': '+(c.parsed.y*100).toFixed(1)+'%'}}},
+      scales:{x:{title:axT('Calls in one minute'),grid:{display:false}},y:{beginAtZero:true,title:axT('Share of minutes')}}}});
+  let lE,kE;
+  function update(){
+    const l=+lE.value,k=+kE.value,kmax=Math.max(10,Math.ceil(l+4*Math.sqrt(l)+2));
+    const pmf=[...Array(kmax+1)].map((_,i)=>poisPmf(i,l));
+    ch.data.labels=pmf.map((_,i)=>i);ch.data.datasets[0].data=pmf;
+    ch.data.datasets[0].backgroundColor=pmf.map((_,i)=>i>k?alpha(C.bad,.75):alpha(C.blue,.55));
+    ch.data.datasets[1].data=obs?pmf.map((_,i)=>obs.filter(x=>x===i).length/60):[];ch.update();
+    const over=1-pmf.slice(0,k+1).reduce((s,x)=>s+x,0);
+    $('#pOver').textContent=pct(Math.max(0,over));$('#pOverShift').textContent='≈ '+f(Math.max(0,over)*60,1);
+    $('#poisFormula').innerHTML=`<span class="lbl">P(X = k) = λ<sup>k</sup> e<sup>−λ</sup> ÷ k!</span>P(X = ${k}) = ${f(l,1)}<sup>${k}</sup> · e<sup>−${f(l,1)}</sup> ÷ ${k}! = <b>${fp(pmf[k]||poisPmf(k,l))}</b> &nbsp; mean = variance = λ = ${f(l,1)}`;
+  }
+  lE=range('pl',v=>f(v,1),()=>{obs=null;$('#pSimText').textContent='Run a shift to compare real random minutes with the formula.';update();});
+  kE=range('pk',v=>v,update);
+  $('#pSim').addEventListener('click',()=>{
+    const l=+lE.value,k=+kE.value;obs=[...Array(60)].map(()=>randPois(l));update();
+    const overN=obs.filter(x=>x>k).length;
+    $('#pSimText').innerHTML=`Your shift: ${obs.reduce((a,b)=>a+b,0)} calls in total, average ${f(mean(obs))} per minute. Busiest minute had <b>${Math.max(...obs)}</b> calls, ${obs.filter(x=>x===0).length} minutes were silent, and <b>${overN}</b> minutes overloaded the staff.`;
+    completeMission('poisson');
+  });
+  update();
+}
+
+function initNormal(){
+  const xs=[];for(let x=120;x<=220;x+=.5)xs.push(x);const revealed=new Set();
+  const ch=new Chart($('#normChart'),{type:'line',data:{datasets:[
+    {data:[],borderColor:C.ink,borderWidth:2.5,pointRadius:0,tension:.3,fill:false},
+    {data:[],borderColor:C.blue,borderWidth:0,pointRadius:0,backgroundColor:alpha(C.blue,.35),fill:'origin',tension:.3}]},
+    options:{parsing:false,plugins:{tooltip:{enabled:false}},scales:{x:{type:'linear',min:120,max:220,title:axT('Height (cm)')},y:{min:0,title:axT('Density')}}}});
+  let mE,sE,aE,bE;
+  function update(){
+    const m=+mE.value,s=+sE.value;let a=+aE.value,b=+bE.value;if(a>b)[a,b]=[b,a];
+    ch.data.datasets[0].data=xs.map(x=>({x,y:normPdf(x,m,s)}));
+    ch.data.datasets[1].data=xs.filter(x=>x>=a&&x<=b).map(x=>({x,y:normPdf(x,m,s)}));
+    ch.options.scales.y.max=normPdf(m,m,s)*1.12;
+    ch.$vlines=[{x:m,color:C.muted,dash:[4,4],width:1.5,label:'μ = '+m}];ch.update();
+    const pr=normCdf(b,m,s)-normCdf(a,m,s);$('#nProb').textContent=pct(pr);
+    const z1=(a-m)/s,z2=(b-m)/s;
+    $('#normFormula').innerHTML=`<span class="lbl">z = (x − μ) ÷ σ, then P = Φ(z₂) − Φ(z₁)</span>z₁ = (${a} − ${m}) ÷ ${s} = ${minus(f(z1))}, &nbsp; z₂ = (${b} − ${m}) ÷ ${s} = ${minus(f(z2))} &nbsp; P = <b>${f(pr,4)}</b>`;
+  }
+  mE=range('nm',v=>v,update);sE=range('ns',v=>v,update);aE=range('na',v=>v,update);bE=range('nb',v=>v,update);
+  $$('[data-sig]').forEach(btn=>btn.addEventListener('click',()=>{const k=+btn.dataset.sig,m=+mE.value,s=+sE.value;
+    setRange(aE,Math.max(120,m-k*s));setRange(bE,Math.min(220,m+k*s));
+    revealed.add(k);toast(`Within ±${k}σ: <b>${['68.3','95.4','99.7'][k-1]}%</b> of people, whatever μ and σ are.`);
+    if(revealed.size===3)completeMission('bell');}));
+  $('#nDoor').addEventListener('click',()=>{setRange(aE,200);setRange(bE,220);});
+  update();
+}
+
+/* ================= Lesson 2 ================= */
+const POPS={
+  dice:{draw:()=>1+Math.floor(Math.random()*6),mu:3.5,sd:Math.sqrt(35/12),range:[1,6],pop:[.5,6.5,6],xl:'Average roll',cap:'Fair die: every face 1 to 6 equally likely (flat, not bell-shaped).'},
+  wait:{draw:()=>-5*Math.log(1-Math.random()),mu:5,sd:5,range:[0,16],pop:[0,30,30],xl:'Average wait (minutes)',cap:'Bus waits: mostly short, a few very long. Strongly skewed, mean 5 min.'},
+  exam:{draw:()=>Math.random()<.5?45+8*randn():80+6*randn(),mu:62.5,sd:Math.sqrt(356.25),range:[30,95],pop:[10,110,30],xl:'Average score',cap:'Two groups of students: one struggling, one strong. Two humps.'}
+};
+function initCLT(){
+  let pop='dice',means=[],busy=false;
+  const popCh=new Chart($('#popChart'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:alpha(C.violet,.55),barPercentage:1,categoryPercentage:.95}]},
+    options:{plugins:{tooltip:{enabled:false}},scales:{x:{ticks:{maxTicksLimit:7},grid:{display:false}},y:{display:false}}}});
+  const ch=new Chart($('#cltChart'),{type:'bar',data:{labels:[],datasets:[
+    {label:'Your sample means',data:[],backgroundColor:alpha(C.blue,.6),barPercentage:1,categoryPercentage:.95,order:2},
+    {label:'Normal curve predicted by the CLT',type:'line',data:[],borderColor:C.amber,borderWidth:2.5,pointRadius:0,tension:.35,order:1}]},
+    options:{animation:false,plugins:{legend:{display:true,labels:{boxWidth:12}},tooltip:{enabled:false}},scales:{x:{ticks:{maxTicksLimit:8},title:axT('Average'),grid:{display:false}},y:{beginAtZero:true,title:axT('Number of samples')}}}});
+  const nE=range('cn',v=>v,()=>{means=[];render();});
+  function drawPop(){const P_=POPS[pop],v=[...Array(6000)].map(P_.draw),h=hist(v,P_.pop[0],P_.pop[1],P_.pop[2]);
+    popCh.data.labels=h.centers.map(c=>f(c,pop==='dice'?0:0));popCh.data.datasets[0].data=h.counts;popCh.update();$('#popCap').textContent=P_.cap;}
+  function render(){
+    const P_=POPS[pop],n=+nE.value,se=P_.sd/Math.sqrt(n),h=pop==='dice'?hist(means,1-.5/n,6+.5/n,5*n+1):hist(means,P_.range[0],P_.range[1],30);
+    ch.data.labels=h.centers.map(c=>f(c,1));ch.data.datasets[0].data=h.counts;
+    ch.data.datasets[1].data=means.length?h.centers.map(c=>means.length*h.w*normPdf(c,P_.mu,se)):[];
+    ch.options.scales.x.title.text=P_.xl;ch.update();
+    $('#cCount').textContent=means.length;
+    $('#cMean').textContent=means.length?f(mean(means)):'–';
+    $('#cSd').textContent=means.length>1?f(sd(means)):'–';
+    $('#cSe').textContent=f(se);
+    $('#cltFormula').innerHTML=`<span class="lbl">Standard error of the mean: SE = σ ÷ √n</span>SE = ${f(P_.sd)} ÷ √${n} = <b>${f(se,3)}</b> &nbsp; population μ = ${P_.mu}`;
+  }
+  function one(){const P_=POPS[pop],n=+nE.value,s=[...Array(n)].map(P_.draw);means.push(mean(s));return s;}
+  function draw(K){if(busy)return;
+    if(K===1){const s=one();render();$('#cltSample').innerHTML=`Your sample: ${s.slice(0,12).map(x=>f(x,pop==='dice'?0:1)).join(', ')}${s.length>12?' …':''} → mean <b>${f(mean(s))}</b>`;return check();}
+    busy=true;let left=K;const chunk=REDUCE?K:Math.max(10,Math.round(K/30));
+    (function tick(){const c=Math.min(left,chunk);for(let i=0;i<c;i++)one();left-=c;render();if(left>0)requestAnimationFrame(tick);else{busy=false;check();}})();
+    $('#cltSample').textContent=`Drew ${K} samples of size ${nE.value}.`;
+  }
+  function check(){const n=+nE.value;if(pop==='wait'&&n>=30&&means.length>=1000)completeMission('clt');if(n===1&&means.length>=1000)completeMission('cltN1');}
+  $$('[data-draw]').forEach(b=>b.addEventListener('click',()=>draw(+b.dataset.draw)));
+  $('#cltReset').addEventListener('click',()=>{means=[];$('#cltSample').textContent='';render();});
+  seg($('#cltPop'),v=>{pop=v;means=[];$('#cltSample').textContent='';drawPop();render();});
+  drawPop();render();
+}
+
+function initCI(){
+  const MU=5,SIG=1.5,Z={90:1.645,95:1.96,99:2.576};let ivs=[],built=0,caught=0,total=0,id=0;
+  const ch=new Chart($('#ciChart'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderSkipped:false,borderRadius:4,barPercentage:.7,categoryPercentage:1}]},
+    options:{indexAxis:'y',scales:{x:{min:3,max:7,title:axT('Average screen time (hours)')},y:{ticks:{display:false},grid:{display:false}}},
+      plugins:{tooltip:{callbacks:{title:c=>'Interval '+c[0].label,label:c=>{const v=c.raw;return `[${f(v[0])}, ${f(v[1])}]`;}}}}}});
+  ch.$vlines=[{x:MU,color:C.ink,dash:[6,4],width:2,label:'true μ = 5.0 h'}];
+  const nE=range('in',v=>v,()=>{reset();});
+  function conf(){return +segVal($('#ciConf'));}
+  function make(){const n=+nE.value,z=Z[conf()],xb=MU+SIG/Math.sqrt(n)*randn(),h=z*SIG/Math.sqrt(n),lo=xb-h,hi=xb+h,hit=lo<=MU&&MU<=hi;
+    ivs.unshift({id:++id,lo,hi,hit,xb});if(ivs.length>40)ivs.pop();built++;total++;if(hit)caught++;return{xb,h,lo,hi,hit};}
+  function render(last){
+    ch.data.labels=ivs.map(v=>'#'+v.id);ch.data.datasets[0].data=ivs.map(v=>[v.lo,v.hi]);
+    ch.data.datasets[0].backgroundColor=ivs.map(v=>v.hit?alpha(C.ok,.8):alpha(C.bad,.85));ch.update();
+    const n=+nE.value,z=Z[conf()],h=z*SIG/Math.sqrt(n);
+    $('#ciRate').textContent=built?pct(caught/built):'–';$('#ciCount').textContent=built;$('#ciWidth').textContent=f(2*h);
+    const xb=last?last.xb:null;
+    $('#ciFormula').innerHTML=`<span class="lbl">x̄ ± z · σ ÷ √n</span>${xb!==null?f(xb):'x̄'} ± ${z} · ${SIG} ÷ √${n} = ${xb!==null?`<b>[${f(xb-h)}, ${f(xb+h)}]</b> ${last.hit?'✔ caught μ':'✘ missed μ'}`:`x̄ ± <b>${f(h)}</b>`}`;
+  }
+  function build(k){let last;for(let i=0;i<k;i++)last=make();render(last);
+    if(total>=100)completeMission('ci100');if(conf()===99&&built>=20)completeMission('ci99');}
+  function reset(){ivs=[];built=0;caught=0;id=0;render();}
+  $$('[data-ci]').forEach(b=>b.addEventListener('click',()=>build(+b.dataset.ci)));
+  $('#ciReset').addEventListener('click',reset);
+  seg($('#ciConf'),()=>reset());
+  render();
+}
+
+/* ================= Lesson 3 ================= */
+function initTest(){
+  const SIG=10,MU0=500;let mode='free',secret=null,pending=null,score={right:0,t1:0,t2:0};
+  const xs=[];for(let x=-4;x<=4.0001;x+=.05)xs.push(+x.toFixed(2));
+  const ch=new Chart($('#testChart'),{type:'line',data:{datasets:[
+    {data:xs.map(x=>({x,y:normPdf(x,0,1)})),borderColor:C.ink,borderWidth:2.5,pointRadius:0,tension:.3},
+    {data:[],borderWidth:0,pointRadius:0,backgroundColor:alpha(C.bad,.4),fill:'origin',tension:.3},
+    {data:[],borderWidth:0,pointRadius:0,backgroundColor:alpha(C.bad,.4),fill:'origin',tension:.3}]},
+    options:{parsing:false,plugins:{tooltip:{enabled:false}},scales:{x:{type:'linear',min:-4,max:4,title:axT('z (standard errors from 500 ml)')},y:{min:0,max:.45,title:axT('Density')}}}});
+  const tE=range('tt',v=>f(v,1)),nE=range('tn',v=>v);
+  const alphaV=()=>+segVal($('#tAlpha'));
+  const zc=a=>({0.01:2.576,0.05:1.96,0.1:1.645})[a];
+  function drawTails(){const c=zc(alphaV());
+    ch.data.datasets[1].data=xs.filter(x=>x<=-c).map(x=>({x,y:normPdf(x,0,1)}));
+    ch.data.datasets[2].data=xs.filter(x=>x>=c).map(x=>({x,y:normPdf(x,0,1)}));ch.update();}
+  function sample(){
+    const n=+nE.value,mu=mode==='free'?+tE.value:secret,xb=mu+SIG/Math.sqrt(n)*randn(),se=SIG/Math.sqrt(n),z=(xb-MU0)/se,p=2*(1-normCdf(Math.abs(z),0,1)),a=alphaV();
+    ch.$vlines=[{x:Math.max(-3.95,Math.min(3.95,z)),color:C.blue,width:3,label:'z = '+minus(f(z))}];ch.update();
+    $('#testFormula').innerHTML=`<span class="lbl">z = (x̄ − 500) ÷ (σ ÷ √n), &nbsp; p-value = 2 · P(Z &gt; |z|)</span>z = (${f(xb)} − 500) ÷ (10 ÷ √${n}) = <b>${minus(f(z))}</b>, &nbsp; p = <b>${fp(p)}</b>`;
+    completeMission('test1');
+    return{xb,z,p,a,rej:p<a};
+  }
+  function showFree(r){const el=$('#tResult');el.className='verdict '+(r.rej?'rej':'keep');
+    el.innerHTML=r.rej?`Reject H₀ (p = ${fp(r.p)} &lt; α = ${r.a})<span>Sample mean ${f(r.xb)} ml is too far from 500 to blame on luck.</span>`:`Fail to reject H₀ (p = ${fp(r.p)} ≥ α = ${r.a})<span>Sample mean ${f(r.xb)} ml is consistent with the 500 ml claim. That isn’t proof the claim is true.</span>`;}
+  function newCase(){secret=Math.random()<.5?500:+(494+Math.random()*3.5).toFixed(1);pending=null;ch.$vlines=[];ch.update();
+    $('#tSample').disabled=false;$('#tVerdictBtns').hidden=true;$('#tNewCase').hidden=true;
+    const el=$('#tResult');el.className='verdict info';el.innerHTML='A new batch of bottles has arrived.<span>Choose n, take one sample, then give your verdict using the p-value.</span>';}
+  function verdict(rej){if(!pending)return;const honest=secret===500,correct=rej!==honest;
+    if(correct)score.right++;else if(rej)score.t1++;else score.t2++;
+    const el=$('#tResult');el.className='verdict '+(correct?'keep':'rej');
+    el.innerHTML=(correct?'Correct verdict! ':'Wrong verdict. ')+`<span>The real average fill was <b>${f(secret,1)} ml</b>. ${correct?(honest?'The company was honest and you didn’t accuse it.':'They were underfilling and your test caught it.'):(rej?'That’s a Type I error: you rejected a true H₀.':'That’s a Type II error: a real underfill slipped past.')}</span>`;
+    if(correct)addXP(5,'Correct verdict');
+    $('#tScore').innerHTML=`<span class="chip hit">${score.right} correct</span><span class="chip miss">${score.t1} Type I</span><span class="chip miss">${score.t2} Type II</span>`;
+    pending=null;$('#tVerdictBtns').hidden=true;$('#tNewCase').hidden=false;$('#tSample').disabled=true;
+    if(score.right>=5)completeMission('detective');}
+  $('#tSample').addEventListener('click',()=>{const r=sample();if(mode==='free')showFree(r);else{pending=r;$('#tSample').disabled=true;$('#tVerdictBtns').hidden=false;
+    const el=$('#tResult');el.className='verdict info';el.innerHTML=`x̄ = ${f(r.xb)} ml, p-value = ${fp(r.p)}<span>Your α is ${r.a}. What’s your verdict?</span>`;}});
+  $('#tGuilty').addEventListener('click',()=>verdict(true));
+  $('#tInnocent').addEventListener('click',()=>verdict(false));
+  $('#tNewCase').addEventListener('click',newCase);
+  seg($('#tAlpha'),()=>drawTails());
+  seg($('#tMode'),v=>{mode=v;$('#tTrueWrap').hidden=v==='case';$('#tNewCase').hidden=true;$('#tVerdictBtns').hidden=true;$('#tSample').disabled=false;
+    if(v==='case')newCase();else{const el=$('#tResult');el.className='verdict info';el.innerHTML='Take a sample to start the test.<span>The p-value is the chance of seeing a sample this extreme if H₀ were true.</span>';}});
+  drawTails();
+  $('#testFormula').innerHTML='<span class="lbl">z = (x̄ − 500) ÷ (σ ÷ √n), &nbsp; p-value = 2 · P(Z &gt; |z|)</span>Take a sample to fill in the numbers.';
+}
+
+function initReg(){
+  let pts=[],showRes=false,clicks=0;
+  const ch=new Chart($('#regChart'),{type:'scatter',data:{datasets:[
+    {data:[],backgroundColor:alpha(C.blue,.75),borderColor:C.ink,borderWidth:1,pointRadius:6,pointHoverRadius:8},
+    {data:[],showLine:true,borderColor:C.violet,borderWidth:3,pointRadius:0},
+    {data:[],pointStyle:'star',pointRadius:12,borderColor:C.amber,borderWidth:3,backgroundColor:C.hi}]},
+    options:{animation:{duration:REDUCE?0:250},plugins:{tooltip:{callbacks:{label:c=>`(${f(c.parsed.x,1)}, ${f(c.parsed.y,0)})`}}},
+      scales:{x:{min:0,max:10,title:axT('Hours studied (x)')},y:{min:0,max:100,title:axT('Exam score (y)')}},
+      onClick:(e,els,chart)=>{const a=chart.chartArea;if(e.x<a.left||e.x>a.right||e.y<a.top||e.y>a.bottom)return;
+        pts.push({x:+chart.scales.x.getValueForPixel(e.x).toFixed(1),y:+chart.scales.y.getValueForPixel(e.y).toFixed(0)});clicks++;update();}}});
+  const xE=range('rx',v=>f(v,1),()=>update());
+  function fit(){const n=pts.length;if(n<2)return null;const mx=mean(pts.map(p=>p.x)),my=mean(pts.map(p=>p.y));let sxx=0,syy=0,sxy=0;
+    pts.forEach(p=>{sxx+=(p.x-mx)**2;syy+=(p.y-my)**2;sxy+=(p.x-mx)*(p.y-my);});if(sxx===0)return null;
+    const b1=sxy/sxx,b0=my-b1*mx,r=syy===0?0:sxy/Math.sqrt(sxx*syy);return{b0,b1,r};}
+  function words(r){const a=Math.abs(r),s=a>=.8?'strong':a>=.5?'moderate':a>=.3?'weak':'very weak or no';return `${s} ${a<.3?'':r>0?'positive ':'negative '}linear relationship`.replace('  ',' ');}
+  function update(){
+    const F=fit();ch.data.datasets[0].data=pts;
+    ch.data.datasets[1].data=F?[{x:0,y:F.b0},{x:10,y:F.b0+10*F.b1}]:[];
+    const xp=+xE.value;ch.data.datasets[2].data=F?[{x:xp,y:F.b0+F.b1*xp}]:[];
+    ch.$segments=F&&showRes?pts.map(p=>({x1:p.x,y1:p.y,x2:p.x,y2:F.b0+F.b1*p.x,color:C.bad})):[];ch.update();
+    $('#rN').textContent=pts.length;$('#rR').textContent=F?minus(f(F.r)):'–';$('#rR2').textContent=F?pct(F.r*F.r):'–';
+    $('#rWords').textContent=F?`r = ${minus(f(F.r))}: a ${words(F.r)}. The line explains ${pct(F.r*F.r)} of the variation in y.`:'Add at least two points (with different x values) to fit a line.';
+    $('#regFormula').innerHTML=F?`<span class="lbl">ŷ = b₀ + b₁x, where b₁ = Sxy ÷ Sxx and b₀ = ȳ − b₁x̄</span>ŷ = ${f(F.b0,1)} ${F.b1<0?'−':'+'} ${f(Math.abs(F.b1))} × ${f(xp,1)} = <b>${f(F.b0+F.b1*xp,1)}</b> &nbsp; each extra hour changes the score by ${minus(f(F.b1,1))}`:'<span class="lbl">ŷ = b₀ + b₁x</span>Waiting for data…';
+    if(F&&clicks>=10)completeMission('reg10');
+  }
+  function gen(kind){const out=[];for(let i=0;i<14;i++){const x=+(0.5+Math.random()*9).toFixed(1);let y;
+      if(kind==='pos')y=32+6*x+randn()*7;else if(kind==='neg')y=88-6.5*x+randn()*7;else y=20+Math.random()*65;
+      out.push({x,y:Math.round(Math.max(2,Math.min(98,y)))});}return out;}
+  $$('[data-preset]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.preset;
+    if(k==='out'){if(pts.length<5)pts=gen('pos');pts.push({x:9.2,y:12});toast('Outlier added at (9.2, 12). Watch how far the line tilts and r drops.');update();completeMission('outlier');return;}
+    pts=gen(k);ch.options.scales.x.title.text=k==='neg'?'Hours of gaming per day (x)':'Hours studied (x)';update();}));
+  $('#rUndo').addEventListener('click',()=>{pts.pop();update();});
+  $('#rClear').addEventListener('click',()=>{pts=[];update();});
+  $('#rRes').addEventListener('click',e=>{showRes=!showRes;e.currentTarget.setAttribute('aria-pressed',showRes);e.currentTarget.textContent=showRes?'Hide residuals':'Show residuals';update();});
+  update();
+}
+
+function initGuess(){
+  let actual=0,locked=false,hits=0,score=0,hist=[];
+  const ch=new Chart($('#guessChart'),{type:'scatter',data:{datasets:[{data:[],backgroundColor:alpha(C.violet,.7),pointRadius:5},{data:[],showLine:true,borderColor:C.amber,borderWidth:2.5,pointRadius:0}]},
+    options:{plugins:{tooltip:{enabled:false}},scales:{x:{min:-3.2,max:3.2,ticks:{display:false}},y:{min:-3.2,max:3.2,ticks:{display:false}}}}});
+  const gE=range('gr',v=>minus(f(v)));
+  function round(){const t=(Math.random()*1.9-.95);const pts=[];for(let i=0;i<45;i++){const x=randn();pts.push({x,y:t*x+Math.sqrt(1-t*t)*randn()});}
+    const mx=mean(pts.map(p=>p.x)),my=mean(pts.map(p=>p.y));let sxx=0,syy=0,sxy=0;pts.forEach(p=>{sxx+=(p.x-mx)**2;syy+=(p.y-my)**2;sxy+=(p.x-mx)*(p.y-my);});
+    actual=sxy/Math.sqrt(sxx*syy);ch.data.datasets[0].data=pts;ch.data.datasets[1].data=[];ch.$fit={b1:sxy/sxx,b0:my-sxy/sxx*mx};ch.update();
+    locked=false;$('#gLock').disabled=false;setRange(gE,0);const el=$('#gResult');el.className='verdict info';el.innerHTML='Within ±0.10 counts as a hit.<span>Three hits earn the Correlation sniper badge.</span>';}
+  $('#gLock').addEventListener('click',()=>{if(locked)return;locked=true;$('#gLock').disabled=true;
+    const g=+gE.value,d=Math.abs(g-actual),pts=Math.max(0,Math.round(100-250*d)),hit=d<=.1;score+=pts;if(hit)hits++;
+    const F=ch.$fit;ch.data.datasets[1].data=[{x:-3.2,y:F.b0-3.2*F.b1},{x:3.2,y:F.b0+3.2*F.b1}];ch.update();
+    const el=$('#gResult');el.className='verdict '+(hit?'keep':'rej');
+    el.innerHTML=`${hit?'Hit!':'Not quite.'} Actual r = ${minus(f(actual))}<span>You guessed ${minus(f(g))}, off by ${f(d)}. +${pts} points.</span>`;
+    hist.unshift({g,a:actual,hit});hist=hist.slice(0,8);
+    $('#gHist').innerHTML=hist.map(h=>`<span class="chip ${h.hit?'hit':'miss'}">${minus(f(h.a))}</span>`).join('');
+    $('#gHits').textContent=hits;$('#gPts').textContent=score;
+    if(hit){addXP(5,'Correlation hit');if(!REDUCE&&typeof confetti==='function')confetti({particleCount:40,spread:50,origin:{y:.7},colors:[C.ok,C.hi],zIndex:200});}
+    if(hits>=3)completeMission('sniper');});
+  $('#gNext').addEventListener('click',round);
+  round();
+}
+
+/* ================= quizzes ================= */
+const QUIZ={
+ 1:[{id:'q1a',q:'A clinic sees 4 walk-in patients per hour on average, arriving at random. Which distribution models the number of patients in one hour?',o:['Binomial','Poisson','Normal'],a:1,e:'Random arrivals counted over a fixed time with a known average rate are the classic Poisson setting.'},
+    {id:'q1b',q:'You flip a fair coin 10 times. X = number of heads is Binomial(10, 0.5). What is its expected value?',o:['0.5','2.5','5','10'],a:2,e:'For a binomial, E(X) = np = 10 × 0.5 = 5.'},
+    {id:'q1c',q:'Heights are Normal(μ = 170, σ = 7). About what share of people are between 163 cm and 177 cm?',o:['50%','68%','95%','99.7%'],a:1,e:'163 and 177 are exactly 1σ either side of the mean, which covers about 68%.'}],
+ 2:[{id:'q2a',q:'The central limit theorem says the distribution of sample means becomes approximately normal…',o:['only when the population itself is normal','as the sample size n grows, whatever the population’s shape','as you take more samples, even with n = 1'],a:1,e:'It is the size of each sample, n, that matters. You saw this in the CLT machine: with n = 1 the means just copy the population.'},
+    {id:'q2b',q:'If you make your sample 4 times larger, the standard error σ/√n…',o:['halves','becomes a quarter','doubles','stays the same'],a:0,e:'√4 = 2, so the standard error is divided by 2.'},
+    {id:'q2c',q:'What does a 95% confidence interval mean?',o:['95% of the data lie inside it','If we repeated the sampling many times, about 95% of intervals built this way would contain the true mean','The sample mean is correct 95% of the time'],a:1,e:'The 95% belongs to the method. You saw it in the factory: roughly 95 of every 100 intervals were green.'}],
+ 3:[{id:'q3a',q:'A test gives p = 0.03 and you chose α = 0.05. What should you conclude?',o:['Reject H₀','Fail to reject H₀','H₀ has been proven true'],a:0,e:'p < α, so the result is statistically significant and we reject H₀.'},
+    {id:'q3b',q:'Rejecting a null hypothesis that is actually true is called…',o:['a Type I error','a Type II error','the power of the test'],a:0,e:'A Type I error is a false alarm. Its probability is α.'},
+    {id:'q3c',q:'Screen time and hours of sleep have r = −0.85. What can you say?',o:['Screen time causes less sleep','There is a strong negative linear relationship','There is almost no relationship'],a:1,e:'|r| = 0.85 is strong and the sign is negative. Correlation alone can’t prove cause.'}]
+};
+function renderQuiz(L){
+  const qs=QUIZ[L],box=$('#quiz-'+L);
+  const answered=qs.filter(q=>P.quiz[q.id]!==undefined),allRight=qs.every(q=>P.quiz[q.id]===q.a);
+  box.innerHTML=`<h3>Lesson ${L} checkpoint</h3><p>Each correct answer earns 10 XP. Get all three right to earn the ${BADGES['quiz'+L].icon} ${BADGES['quiz'+L].name} badge.</p>`+
+    qs.map(q=>{const ans=P.quiz[q.id];return `<div class="q"><p>${q.q}</p><div class="opts">${q.o.map((o,i)=>{let cls='';if(ans!==undefined){if(i===q.a)cls='right';else if(i===ans)cls='wrong';}
+      return `<button type="button" class="opt ${cls}" data-q="${q.id}" data-i="${i}" ${ans!==undefined?'disabled':''}>${o}</button>`;}).join('')}</div>${ans!==undefined?`<p class="explain">${ans===q.a?'✔ ':'✘ '}${q.e}</p>`:''}</div>`;}).join('')+
+    (answered.length===qs.length&&!allRight?`<button class="btn" type="button" data-retry="${L}">Retry the ones you missed</button>`:'');
+  $$('.opt',box).forEach(b=>b.addEventListener('click',()=>{const q=qs.find(x=>x.id===b.dataset.q),i=+b.dataset.i;P.quiz[q.id]=i;
+    if(i===q.a&&!P.quizXP.includes(q.id)){P.quizXP.push(q.id);addXP(10);}else if(i!==q.a){toast('Not quite. Read the explanation, then retry.');}
+    save();renderQuiz(L);if(qs.every(x=>P.quiz[x.id]===x.a))completeMission('quiz'+L);}));
+  const r=$('[data-retry]',box);if(r)r.addEventListener('click',()=>{qs.forEach(q=>{if(P.quiz[q.id]!==q.a)delete P.quiz[q.id];});save();renderQuiz(L);});
+}
+
+/* ================= routing ================= */
+const VIEWS={probability:[initCoin,initBinom,initPoisson,initNormal],sampling:[initCLT,initCI],testing:[initTest,initReg,initGuess]};
+const inited={};
+function show(scroll){
+  const h=location.hash.slice(1),v=VIEWS[h]?h:'probability';
+  Object.keys(VIEWS).forEach(k=>{$('#view-'+k).hidden=k!==v;});
+  $$('.tab').forEach(t=>{if(t.dataset.view===v)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');});
+  if(!inited[v]&&hasChart){inited[v]=true;VIEWS[v].forEach(fn=>{try{fn();}catch(e){console.error(e);}});}
+  if(scroll){const top=$('.path').getBoundingClientRect().top+window.scrollY-70;window.scrollTo({top,behavior:REDUCE?'auto':'smooth'});}
+}
+window.addEventListener('hashchange',()=>show(true));
+
+/* ================= boot ================= */
+renderXP();renderMissions();[1,2,3].forEach(renderQuiz);
+initGalton();show(false);
+if(!P.xp)setTimeout(()=>toast('Welcome! Finish missions to earn XP and badges. Start by dropping balls on the board.'),900);
+})();
+</script>
+</body>
+</html>
